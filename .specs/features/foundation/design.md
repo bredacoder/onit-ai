@@ -41,7 +41,7 @@ and the data model require; `agent/` is deferred to the Understand slice.
   tasks.go           # `onit tasks` command (thin: calls port, renders)
 /internal/core/
   ports.go           # 🟨 cross-cutting ports (ADR-008): Persistence, LLM, Clock
-  ids.go             # typed IDs: UserID, TaskID, NegotiationID, ProviderID, MessageID
+  ids/               # leaf pkg `ids`: UserID, TaskID, NegotiationID, ProviderID, MessageID (imports nothing)
   identity/          # User
   understanding/     # Task (typed spine + attributes), TaskState
   negotiation/       # Negotiation (FSM named type), Message, NegotiationState
@@ -83,8 +83,10 @@ Greenfield — nothing to import yet. "Reuse" here means following locked decisi
 
 ## Components
 
-### `internal/core` (root) — cross-cutting ports & IDs
-- **Purpose**: hold the ports used by several contexts (ADR-008) and the typed IDs.
+### `internal/core` (root) — cross-cutting ports
+- **Purpose**: hold the ports used by several contexts (ADR-008). Typed IDs live in the
+  leaf package `internal/core/ids` (imports nothing) so both the root ports and every
+  aggregate package can use them **without** an import cycle (aggregates never import root `core`).
 - **Interfaces**:
   - `Persistence` — `ListTasks(ctx, UserID) ([]understanding.Task, error)` *(grows per slice)*
   - `LLM` — `Complete(ctx, Request) (Response, error)` *(declared + fake; not exercised)*
@@ -195,6 +197,7 @@ structured logging via `slog`.
 | sqlc-generated types | live **only** in `adapters/postgres`; adapter maps to core types | core stays free of generated code; ACL at the persistence edge |
 | State enums | named `string` types + `Parse` that errors on unknown; stored as `text` | "invalid states hard to represent" (PRD §7) + FND-07 |
 | Composition root | `cmd/onit/main.go` | only place importing core + adapters |
+| Typed IDs location | leaf pkg `internal/core/ids` (not root `core`) | root `core` ports return `understanding.Task`, so root imports `understanding`; if IDs also lived in root, `understanding` would import root → cycle. A dependency-free `ids` leaf breaks it while keeping Persistence in root (ADR-008). |
 
 ---
 

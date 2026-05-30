@@ -100,8 +100,9 @@ T14 → T15
 ---
 
 ### T3: Core IDs + `identity.User`
-**What**: typed IDs (`UserID`, `TaskID`, `NegotiationID`, `ProviderID`, `MessageID`) in `internal/core/ids.go`; minimal `User` in `internal/core/identity/user.go`.
-**Where**: `internal/core/ids.go`, `internal/core/identity/`
+**What**: typed IDs (`UserID`, `TaskID`, `NegotiationID`, `ProviderID`, `MessageID`) in leaf package `internal/core/ids/ids.go` (package `ids`, imports nothing); minimal `User` in `internal/core/identity/user.go`.
+**Where**: `internal/core/ids/`, `internal/core/identity/`
+**Note**: IDs live in the `ids` leaf pkg (not root `core`) to avoid the root `core` ↔ `understanding` import cycle — see design.md Tech Decisions.
 **Depends on**: T1
 **Reuses**: `golang-naming`, `golang-structs-interfaces`
 **Requirement**: (enabling)

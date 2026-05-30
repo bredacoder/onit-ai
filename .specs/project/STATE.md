@@ -1,7 +1,7 @@
 # State
 
 **Last Updated:** 2026-05-29
-**Current Work:** Foundation (hexagonal wiring) — Tasks (tasks.md drafted, 14 tasks, awaiting approval)
+**Current Work:** Foundation (hexagonal wiring) — Execute (T1–T2 done & committed on branch `feat/foundation`; tooling pinned via `go tool`)
 
 ---
 
@@ -34,6 +34,15 @@
 **Reason:** Aligns the core's internal seams with the domain; avoids import cycles; light strategic DDD calibrated for M0.
 **Trade-off:** More packages up front vs a flat core; deliberately skips heavy DDD machinery (per-context persistence, ACLs, event bus) until M1+.
 **Impact:** Shapes the Foundation design; `golang-project-layout` materializes the tree.
+
+---
+
+### AD-005: Typed IDs in leaf pkg `internal/core/ids` (2026-05-29)
+
+**Decision:** The five typed IDs (`UserID`, `TaskID`, `NegotiationID`, `ProviderID`, `MessageID`) live in a dependency-free leaf package `internal/core/ids` (package `ids`), **not** in the root `core` package as T3 originally drafted.
+**Reason:** Root `core` ports (ADR-008) return `understanding.Task`, so root imports `understanding`; if IDs also sat in root, `understanding` would import root for the ID types → mutual import cycle. A leaf `ids` package imported by both root ports and every aggregate breaks the cycle while keeping `Persistence` in root core (ADR-008 intact).
+**Trade-off:** One extra tiny package vs. an `ids.go` file in root.
+**Impact:** T3 creates `internal/core/ids/`; aggregates (T4–T6, T8) and root ports (T7) import `ids`; aggregates never import root `core`. tasks.md T3 + design.md updated.
 
 ---
 
