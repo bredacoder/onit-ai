@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	coreRoot      = "github.com/bredacoder/onit-ai/internal/core"
 	corePattern   = "github.com/bredacoder/onit-ai/internal/core/..."
 	adapterPrefix = "github.com/bredacoder/onit-ai/internal/adapters/"
 )
@@ -19,7 +20,8 @@ const (
 func TestCoreDoesNotImportAdapters(t *testing.T) {
 	t.Parallel()
 
-	out, err := runGoList(corePattern)
+	// Test both root core package and all sub-packages.
+	out, err := runGoList(coreRoot, corePattern)
 	if err != nil {
 		t.Fatalf("go list failed: %v", err)
 	}
@@ -43,19 +45,18 @@ func TestCoreDoesNotImportAdapters(t *testing.T) {
 	}
 }
 
-// runGoList executes go list for the given pattern and returns the combined output.
-func runGoList(pattern string) (string, error) {
-	cmd := exec.Command(
-		"go", "list",
-		"-f", "{{.ImportPath}}|{{join .Imports \" \"}}|{{join .TestImports \" \"}}|{{join .XTestImports \" \"}}",
-		pattern,
-	)
+// runGoList executes go list for the given patterns and returns the combined output.
+func runGoList(patterns ...string) (string, error) {
+	args := []string{"list", "-f", "{{.ImportPath}}|{{join .Imports \" \"}}|{{join .TestImports \" \"}}|{{join .XTestImports \" \"}}"}
+	args = append(args, patterns...)
+
+	cmd := exec.Command("go", args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("go list %q: %w\nstderr: %s", pattern, err, stderr.String())
+		return "", fmt.Errorf("go list %v: %w\nstderr: %s", patterns, err, stderr.String())
 	}
 
 	return stdout.String(), nil

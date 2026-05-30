@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
@@ -41,9 +42,17 @@ func buildCmd() (*cobra.Command, error) {
 		return nil, fmt.Errorf("DATABASE_URL env var is required")
 	}
 
-	userID := ids.UserID(os.Getenv("ONIT_USER_ID"))
+	rawUserID := os.Getenv("ONIT_USER_ID")
+	if rawUserID == "" {
+		return nil, fmt.Errorf("ONIT_USER_ID env var is required")
+	}
+	userID := ids.UserID(rawUserID)
 
-	pool, err := pgxpool.New(context.Background(), databaseURL)
+	// Use a timeout for initial pool connection to avoid hanging indefinitely.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %w", err)
 	}

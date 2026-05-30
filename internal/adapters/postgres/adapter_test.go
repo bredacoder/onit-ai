@@ -109,6 +109,7 @@ func cleanupTaskThenUser(t *testing.T, pool *pgxpool.Pool, taskID, userID string
 //   - non-nil attributes round-tripped through JSONB,
 //   - nil budget_cap remaining nil in the domain type.
 func TestListTasks_InsertAndRetrieve(t *testing.T) {
+	t.Parallel()
 	pool := mustPool(t)
 
 	userID := "test-user-t14-retrieve"
@@ -149,6 +150,7 @@ func TestListTasks_InsertAndRetrieve(t *testing.T) {
 // TestListTasks_UserIDIsolation inserts tasks for two users and asserts that
 // ListTasks for user A never returns user B's tasks (multi-tenant boundary).
 func TestListTasks_UserIDIsolation(t *testing.T) {
+	t.Parallel()
 	pool := mustPool(t)
 
 	userA := "test-user-t14-isolation-a"
@@ -188,6 +190,7 @@ func TestListTasks_UserIDIsolation(t *testing.T) {
 // string causes ListTasks to return an explicit error wrapping
 // understanding.ErrUnknownTaskState rather than silently using a default (FND-07).
 func TestListTasks_UnknownState(t *testing.T) {
+	t.Parallel()
 	pool := mustPool(t)
 
 	userID := "test-user-t14-badstate"
@@ -214,6 +217,7 @@ func TestListTasks_UnknownState(t *testing.T) {
 // contains an empty JSON object '{}' is mapped to a non-nil, empty map
 // (not nil, not a panic).
 func TestListTasks_EmptyAttributes(t *testing.T) {
+	t.Parallel()
 	pool := mustPool(t)
 
 	userID := "test-user-t14-emptyattrs"
@@ -238,6 +242,7 @@ func TestListTasks_EmptyAttributes(t *testing.T) {
 // TestListTasks_ClosedPool verifies that a closed pool causes ListTasks to
 // return a wrapped error and not panic (FND-03).
 func TestListTasks_ClosedPool(t *testing.T) {
+	t.Parallel()
 	pool := mustPool(t)
 
 	// Close the pool immediately before using it.

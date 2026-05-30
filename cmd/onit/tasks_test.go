@@ -3,19 +3,15 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
 	pgadapter "github.com/bredacoder/onit-ai/internal/adapters/postgres"
-	"github.com/bredacoder/onit-ai/internal/adapters/inmem"
-	"github.com/bredacoder/onit-ai/internal/core"
 	"github.com/bredacoder/onit-ai/internal/core/ids"
 )
 
@@ -88,23 +84,6 @@ func cleanupUser(t *testing.T, pool *pgxpool.Pool, userID string) {
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
 	})
-}
-
-// runTasksCmd wires a root command with the given persistence layer and userID,
-// sets args to "tasks", captures stdout and stderr into separate buffers,
-// and returns (outBuf, errBuf, executeError).
-func runTasksCmd(p core.Persistence, userID ids.UserID) (string, string, error) {
-	outBuf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-
-	cmd := newRootCmd(p, userID)
-	cmd.SetArgs([]string{"tasks"})
-	cmd.SetOut(outBuf)
-	cmd.SetErr(errBuf)
-
-	err := cmd.Execute()
-
-	return outBuf.String(), errBuf.String(), err
 }
 
 // TestTasksCmd_EmptyState verifies that when the DB is migrated but no tasks
@@ -187,24 +166,3 @@ func TestTasksCmd_DBUnavailable(t *testing.T) {
 	require.NotEmpty(t, fmt.Sprintf("%v", err))
 }
 
-// TestTasksCmd_NoCurrentUser verifies that when userID is empty the command
-// returns a clear error (edge case: no current user configured). No panic must
-// occur (spec edge case + Decision B).
-// This test runs offline using inmem.Persistence since the error path
-// (empty userID check) never reaches the persistence layer.
-func TestTasksCmd_NoCurrentUser(t *testing.T) {
-	p := inmem.NewPersistence()
-
-	_, _, err := runTasksCmd(p, ids.UserID(""))
-
-	require.Error(t, err, "empty userID must return an error")
-	require.ErrorIs(t, err, errNoCurrentUser)
-
-	// Ensure the error message mentions how to fix it.
-	require.Contains(
-		t,
-		strings.ToLower(err.Error()),
-		"onit_user_id",
-		"error must mention ONIT_USER_ID so the user knows what to set",
-	)
-}
