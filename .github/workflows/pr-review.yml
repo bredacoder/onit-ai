@@ -48,8 +48,6 @@ jobs:
         with:
           # Uses your Claude Pro/Max subscription via the OAuth token.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Show full output for debugging.
-          show_full_output: true
           # Invoke the project skill on this PR. The skill handles the rest
           # (fetch diff, fan out 6 subagents, consolidate, post comments).
           prompt: |
