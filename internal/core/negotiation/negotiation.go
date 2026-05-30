@@ -34,6 +34,16 @@ const (
 	StateExpired NegotiationState = "expired"
 )
 
+var knownNegotiationStates = map[string]NegotiationState{
+	string(StateDraft):            StateDraft,
+	string(StateAwaitingResponse): StateAwaitingResponse,
+	string(StateCounteroffer):     StateCounteroffer,
+	string(StateHumanApproval):    StateHumanApproval,
+	string(StateConfirmed):        StateConfirmed,
+	string(StateDeclined):         StateDeclined,
+	string(StateExpired):          StateExpired,
+}
+
 // ErrUnknownNegotiationState is returned by ParseNegotiationState when the
 // supplied string does not match any known NegotiationState value.
 var ErrUnknownNegotiationState = errors.New("negotiation: unknown state")
@@ -42,18 +52,11 @@ var ErrUnknownNegotiationState = errors.New("negotiation: unknown state")
 // a NegotiationState. It returns ErrUnknownNegotiationState for any unrecognised
 // value so that the caller can never silently accept an invalid state.
 func ParseNegotiationState(s string) (NegotiationState, error) {
-	switch NegotiationState(s) {
-	case StateDraft,
-		StateAwaitingResponse,
-		StateCounteroffer,
-		StateHumanApproval,
-		StateConfirmed,
-		StateDeclined,
-		StateExpired:
-		return NegotiationState(s), nil
-	default:
-		return "", fmt.Errorf("%w: %q", ErrUnknownNegotiationState, s)
+	if state, ok := knownNegotiationStates[s]; ok {
+		return state, nil
 	}
+
+	return "", fmt.Errorf("%w: %q", ErrUnknownNegotiationState, s)
 }
 
 // Negotiation is the aggregate root for a provider negotiation. Transition methods
