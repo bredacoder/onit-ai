@@ -1,7 +1,7 @@
 # State
 
 **Last Updated:** 2026-05-29
-**Current Work:** Foundation (hexagonal wiring) — Execute (T1–T2 done & committed on branch `feat/foundation`; tooling pinned via `go tool`)
+**Current Work:** Foundation (hexagonal wiring) — ✅ **Execute COMPLETE.** All 14 tasks (T1–T15, no T11) implemented & committed on branch `feat/foundation` (16 atomic commits). `onit tasks` runs end-to-end over real Postgres; core tests pass offline; boundary test green; lint clean. Branch not yet merged to `main`. Next: review/merge, then the **Understand** slice.
 
 ---
 
@@ -54,7 +54,10 @@ _(none)_
 
 ## Lessons Learned
 
-_(none yet)_
+- **Cross-cutting port + centralized IDs = import cycle.** Putting `Persistence` in root `core` (ADR-008) while it returns `understanding.Task` means root imports the aggregate; IDs therefore can't also live in root (the aggregate would import root back). Fix: dependency-free leaf pkg `internal/core/ids` (AD-005). Watch for the same shape when adding future root ports that return aggregate types.
+- **`go tool` deps propagate their `go` directive.** Pinning `sqlc` (v1.31.1) bumped the module's `go` directive to **1.26.0**; `goose` had bumped it to 1.25.7. Tool deps raise the module's minimum Go even though they don't ship in the binary — acceptable here (toolchain auto-managed) but a real coupling to note.
+- **`constraints` is a SQL keyword.** The `Task.Constraints` domain field maps to column **`task_constraints`** to stay keyword-safe across psql/sqlc.
+- **Docker port 5432 was occupied** by another project; the db service publishes **5433**. `DATABASE_URL=postgres://onit:onit@localhost:5433/onit?sslmode=disable`.
 
 ---
 

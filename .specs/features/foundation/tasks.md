@@ -2,8 +2,14 @@
 
 **Design**: `.specs/features/foundation/design.md`
 **Spec**: `.specs/features/foundation/spec.md`
-**Status**: Draft
+**Status**: ✅ Complete — all 14 tasks implemented & committed on branch `feat/foundation` (2026-05-29)
 **Module path**: `github.com/bredacoder/onit-ai` (binary `onit`)
+
+> **Execution outcome:** T1–T15 done (no T11). `onit tasks` runs end-to-end over real
+> Postgres; core compiles & tests offline; boundary test enforces core ⊥ adapters; lint
+> clean. Toolchain (golangci-lint, goose, sqlc) pinned via `go tool`; Go directive bumped
+> to 1.26.0 (required by sqlc v1.31.1). IDs live in leaf pkg `internal/core/ids` (AD-005);
+> the `Constraints` field maps to column `task_constraints`.
 
 ---
 
