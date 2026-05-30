@@ -1,0 +1,10 @@
+.env
+.env.local
+
+# compiled binary
+/onit
+
+# Go artifacts
+*.test
+coverage.out
+coverage.html
