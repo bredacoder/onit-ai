@@ -50,7 +50,7 @@ func New(pool *pgxpool.Pool) *Adapter {
 func (a *Adapter) ListTasks(ctx context.Context, userID ids.UserID) ([]understanding.Task, error) {
 	rows, err := a.queries.ListTasksByUser(ctx, string(userID))
 	if err != nil {
-		return nil, fmt.Errorf("postgres adapter: ListTasks for user %q: %w", userID, err)
+		return nil, fmt.Errorf("postgres adapter: ListTasks: %w", err)
 	}
 
 	tasks := make([]understanding.Task, 0, len(rows))
@@ -58,7 +58,7 @@ func (a *Adapter) ListTasks(ctx context.Context, userID ids.UserID) ([]understan
 	for _, row := range rows {
 		t, err := mapTask(row)
 		if err != nil {
-			return nil, fmt.Errorf("postgres adapter: ListTasks for user %q: %w", userID, err)
+			return nil, fmt.Errorf("postgres adapter: ListTasks: %w", err)
 		}
 
 		tasks = append(tasks, t)

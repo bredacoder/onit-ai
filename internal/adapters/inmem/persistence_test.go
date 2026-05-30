@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/bredacoder/onit-ai/internal/adapters/inmem"
 	"github.com/bredacoder/onit-ai/internal/core/ids"
 	"github.com/bredacoder/onit-ai/internal/core/understanding"
-	"github.com/bredacoder/onit-ai/internal/inmem"
 )
 
 // TestPersistence_ListTasks_UserIDIsolation asserts that ListTasks never
@@ -72,5 +72,6 @@ func TestPersistence_ListTasks_UnknownUserReturnsEmpty(t *testing.T) {
 
 	got, err := p.ListTasks(ctx, "unknown-user")
 	require.NoError(t, err)
+	require.NotNil(t, got, "ListTasks must return a non-nil empty slice, not nil")
 	require.Empty(t, got)
 }

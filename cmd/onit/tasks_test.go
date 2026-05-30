@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -12,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgadapter "github.com/bredacoder/onit-ai/internal/adapters/postgres"
+	"github.com/bredacoder/onit-ai/internal/adapters/inmem"
+	"github.com/bredacoder/onit-ai/internal/core"
 	"github.com/bredacoder/onit-ai/internal/core/ids"
 )
 
@@ -86,14 +90,14 @@ func cleanupUser(t *testing.T, pool *pgxpool.Pool, userID string) {
 	})
 }
 
-// runTasksCmd wires a root command with the given adapter and userID,
+// runTasksCmd wires a root command with the given persistence layer and userID,
 // sets args to "tasks", captures stdout and stderr into separate buffers,
 // and returns (outBuf, errBuf, executeError).
-func runTasksCmd(adapter *pgadapter.Adapter, userID ids.UserID) (string, string, error) {
+func runTasksCmd(p core.Persistence, userID ids.UserID) (string, string, error) {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 
-	cmd := newRootCmd(adapter, userID)
+	cmd := newRootCmd(p, userID)
 	cmd.SetArgs([]string{"tasks"})
 	cmd.SetOut(outBuf)
 	cmd.SetErr(errBuf)
@@ -186,12 +190,12 @@ func TestTasksCmd_DBUnavailable(t *testing.T) {
 // TestTasksCmd_NoCurrentUser verifies that when userID is empty the command
 // returns a clear error (edge case: no current user configured). No panic must
 // occur (spec edge case + Decision B).
+// This test runs offline using inmem.Persistence since the error path
+// (empty userID check) never reaches the persistence layer.
 func TestTasksCmd_NoCurrentUser(t *testing.T) {
-	pool := mustPool(t)
+	p := inmem.NewPersistence()
 
-	adapter := pgadapter.New(pool)
-
-	_, _, err := runTasksCmd(adapter, ids.UserID(""))
+	_, _, err := runTasksCmd(p, ids.UserID(""))
 
 	require.Error(t, err, "empty userID must return an error")
 	require.ErrorIs(t, err, errNoCurrentUser)

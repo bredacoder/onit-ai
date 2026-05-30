@@ -1,37 +1,34 @@
 package understanding
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseTaskState_ValidStates(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		name string
 		input string
 		want  TaskState
 	}{
-		{"created", TaskCreated},
-		{"understood", TaskUnderstood},
-		{"acting", TaskActing},
-		{"awaiting_approval", TaskAwaitingApproval},
-		{"confirmed", TaskConfirmed},
-		{"cancelled", TaskCancelled},
+		{"created", "created", TaskCreated},
+		{"understood", "understood", TaskUnderstood},
+		{"acting", "acting", TaskActing},
+		{"awaiting_approval", "awaiting_approval", TaskAwaitingApproval},
+		{"confirmed", "confirmed", TaskConfirmed},
+		{"cancelled", "cancelled", TaskCancelled},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.input, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, err := ParseTaskState(tc.input)
-			if err != nil {
-				t.Fatalf("ParseTaskState(%q) returned unexpected error: %v", tc.input, err)
-			}
-
-			if got != tc.want {
-				t.Errorf("ParseTaskState(%q) = %q; want %q", tc.input, got, tc.want)
-			}
+			require.NoError(t, err, "ParseTaskState(%q)", tc.input)
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -39,20 +36,24 @@ func TestParseTaskState_ValidStates(t *testing.T) {
 func TestParseTaskState_UnknownReturnsError(t *testing.T) {
 	t.Parallel()
 
-	unknowns := []string{"", "pending", "CREATED", "Created", "unknown"}
+	cases := []struct {
+		name  string
+		input string
+	}{
+		{"empty string", ""},
+		{"invalid pending", "pending"},
+		{"uppercase CREATED", "CREATED"},
+		{"title case Created", "Created"},
+		{"completely unknown", "unknown"},
+	}
 
-	for _, s := range unknowns {
-		t.Run(s, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := ParseTaskState(s)
-			if err == nil {
-				t.Fatalf("ParseTaskState(%q) expected an error, got nil", s)
-			}
-
-			if !errors.Is(err, ErrUnknownTaskState) {
-				t.Errorf("ParseTaskState(%q) error = %v; want errors.Is(err, ErrUnknownTaskState) == true", s, err)
-			}
+			_, err := ParseTaskState(tc.input)
+			require.Error(t, err, "ParseTaskState(%q) should return error", tc.input)
+			require.ErrorIs(t, err, ErrUnknownTaskState)
 		})
 	}
 }
@@ -60,18 +61,11 @@ func TestParseTaskState_UnknownReturnsError(t *testing.T) {
 func TestTask_Attribute_NilAttributeMap(t *testing.T) {
 	t.Parallel()
 
-	// A zero-value Task has a nil Attributes map. Attribute() must not panic
-	// and must return (nil, false) for any key.
 	task := Task{}
 
 	got, ok := task.Attribute("any-key")
-	if ok {
-		t.Errorf("Attribute() on nil map returned ok=true; want false")
-	}
-
-	if got != nil {
-		t.Errorf("Attribute() on nil map returned value=%v; want nil", got)
-	}
+	require.False(t, ok, "Attribute() on nil map should return ok=false")
+	require.Nil(t, got)
 }
 
 func TestTask_Attribute_PopulatedMap(t *testing.T) {
@@ -85,16 +79,9 @@ func TestTask_Attribute_PopulatedMap(t *testing.T) {
 	}
 
 	got, ok := task.Attribute("preferred_hours")
-	if !ok {
-		t.Fatal("Attribute(\"preferred_hours\") returned ok=false; want true")
-	}
-
-	if got != "morning" {
-		t.Errorf("Attribute(\"preferred_hours\") = %v; want \"morning\"", got)
-	}
+	require.True(t, ok)
+	require.Equal(t, "morning", got)
 
 	_, ok = task.Attribute("nonexistent")
-	if ok {
-		t.Error("Attribute(\"nonexistent\") returned ok=true; want false")
-	}
+	require.False(t, ok)
 }

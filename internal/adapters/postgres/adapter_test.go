@@ -1,3 +1,5 @@
+//go:build integration
+
 package postgres_test
 
 import (
@@ -245,5 +247,5 @@ func TestListTasks_ClosedPool(t *testing.T) {
 
 	_, err := adapter.ListTasks(context.Background(), ids.UserID(fmt.Sprintf("user-%d", 1)))
 	require.Error(t, err, "closed pool must return an error")
-	// The error must be wrapped — it must NOT be nil and must NOT panic.
+	require.ErrorContains(t, err, "ListTasks", "error must include context from the adapter")
 }

@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: onit
       POSTGRES_USER: onit
-      POSTGRES_PASSWORD: onit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-onit}
     ports:
       - "5433:5432"
     volumes:

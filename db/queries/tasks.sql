@@ -12,4 +12,5 @@ SELECT
     created_at
 FROM tasks
 WHERE user_id = $1
-ORDER BY created_at;
+ORDER BY created_at DESC
+LIMIT 100;
