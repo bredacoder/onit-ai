@@ -1,0 +1,60 @@
+name: PR Review (onit)
+
+# Runs the `pr-review` skill (.claude/skills/pr-review) against every PR.
+# It posts inline + summary comments only — it never approves or blocks the merge.
+#
+# One-time setup:
+#   1. Generate an OAuth token from your Claude Pro/Max subscription:
+#        $ claude setup-token
+#   2. Save it as a repo secret (Settings → Secrets and variables → Actions):
+#        - CLAUDE_CODE_OAUTH_TOKEN   → the token from step 1
+#   3. Settings → Actions → General → Workflow permissions:
+#        - allow "Read and write permissions" so the action can post PR comments.
+#
+# Note: this consumes your subscription usage limits (shared with your interactive
+# Claude Code usage). To pay per-use instead, swap the auth line below for:
+#   anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Cancel an in-flight review when new commits are pushed to the same PR.
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read          # read the diff + repo docs/specs
+  pull-requests: write     # post inline + summary comments
+  id-token: write          # OIDC for the action
+
+jobs:
+  review:
+    # Skip drafts and bot-authored PRs.
+    if: github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for the diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run onit PR review
+        uses: anthropics/claude-code-action@v1
+        env:
+          # `gh` inside the skill authenticates with this token.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Uses your Claude Pro/Max subscription via the OAuth token.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Invoke the project skill on this PR. The skill handles the rest
+          # (fetch diff, fan out 6 subagents, consolidate, post comments).
+          prompt: |
+            Use the pr-review skill to review pull request #${{ github.event.pull_request.number }}
+            in repository ${{ github.repository }}. Follow the skill's orchestration protocol exactly:
+            launch the 6 subagents in parallel, then consolidate and post the summary.
+          # Tools the skill needs: shell (gh/git), file reads, and the Task tool to fan out.
+          claude_args: |
+            --allowedTools "Task,Read,Glob,Grep,Bash(gh:*),Bash(git:*)"
+            --model claude-sonnet-4-6
