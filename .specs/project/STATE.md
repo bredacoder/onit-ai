@@ -1,6 +1,6 @@
 # State
 
-**Last Updated:** 2026-05-29
+**Last Updated:** 2026-06-02
 **Current Work:** Foundation (hexagonal wiring) — ✅ **Execute COMPLETE.** All 14 tasks (T1–T15, no T11) implemented & committed on branch `feat/foundation` (16 atomic commits). `onit tasks` runs end-to-end over real Postgres; core tests pass offline; boundary test green; lint clean. Branch not yet merged to `main`. Next: review/merge, then the **Understand** slice.
 
 ---
@@ -58,12 +58,13 @@ _(none)_
 - **`go tool` deps propagate their `go` directive.** Pinning `sqlc` (v1.31.1) bumped the module's `go` directive to **1.26.0**; `goose` had bumped it to 1.25.7. Tool deps raise the module's minimum Go even though they don't ship in the binary — acceptable here (toolchain auto-managed) but a real coupling to note.
 - **`constraints` is a SQL keyword.** The `Task.Constraints` domain field maps to column **`task_constraints`** to stay keyword-safe across psql/sqlc.
 - **Docker port 5432 was occupied** by another project; the db service publishes **5433**. `DATABASE_URL=postgres://onit:onit@localhost:5433/onit?sslmode=disable`.
+- **sqlc generated code can silently drift from its SQL source.** The committed `gen/tasks.sql.go` lost `ORDER BY ... DESC` and `LIMIT 100` because `sqlc generate` was not re-run after the `.sql` was finalized — a runtime bug (oldest-first, unbounded) that compiles clean and no linter catches. Caught by the PR review. Fix: regenerate + a `sqlc-drift` CI job (`go tool sqlc generate` then `git diff --cached --exit-code` on the gen dir) so generated/source divergence fails the build.
 
 ---
 
 ## Quick Tasks Completed
 
-_(none)_
+- [x] **Fix PR-review CRITICAL: sqlc drift** (2026-06-02) — regenerated `gen/tasks.sql.go` to restore `ORDER BY created_at DESC LIMIT 100`; added a `sqlc-drift` guard in `.github/workflows/ci.yml` to prevent recurrence.
 
 ---
 
