@@ -83,16 +83,16 @@ Before any agent logic, we need to prove that onit's hexagonal architecture is c
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| FND-01 | P1: `onit tasks` end-to-end | Design | Pending |
-| FND-02 | P1: empty state and filter by `user_id` | Design | Pending |
-| FND-03 | P1: clear error with DB unavailable | Design | Pending |
-| FND-04 | P1: core testable with fakes offline | Design | Pending |
-| FND-05 | P1: core does not import adapters (import-boundary) | Design | Pending |
-| FND-06 | P2: schema + migrations up/down | Design | Pending |
-| FND-07 | P2: `Negotiation` FSM as a named type | Design | Pending |
-| FND-08 | P2: `Task` model typed spine + `jsonb` | Design | Pending |
+| FND-01 | P1: `onit tasks` end-to-end | Execute | ✅ Done (T13–T15) |
+| FND-02 | P1: empty state and filter by `user_id` | Execute | ✅ Done (T14, T15) |
+| FND-03 | P1: clear error with DB unavailable | Execute | ✅ Done (T14, T15) |
+| FND-04 | P1: core testable with fakes offline | Execute | ✅ Done (T7, T9) |
+| FND-05 | P1: core does not import adapters (import-boundary) | Execute | ✅ Done (T10) |
+| FND-06 | P2: schema + migrations up/down | Execute | ✅ Done (T12) |
+| FND-07 | P2: `Negotiation` FSM as a named type | Execute | ✅ Done (T5, +T14 unknown-state guard) |
+| FND-08 | P2: `Task` model typed spine + `jsonb` | Execute | ✅ Done (T4) |
 
-**Coverage:** 8 total, 0 mapped to tasks yet.
+**Coverage:** 8 total, 8 implemented & verified (offline core tests + real-Postgres e2e).
 
 ---
 

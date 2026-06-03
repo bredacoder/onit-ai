@@ -52,6 +52,15 @@ Go · `cobra` (CLI) · `pgx` + `sqlc` (plain reviewed SQL, **no ORM**) · `goose
 
 ## Commands
 
-_No `go.mod` yet — the skeleton is the Foundation feature (in progress)._ Once it
-exists, the workflow lives in the `Makefile`: `make db-up`, `make migrate`, `make test`.
-Keep this section in sync when the targets land.
+Module `github.com/bredacoder/onit-ai` (Go 1.26; binary `onit`). Dev tooling
+(`golangci-lint`, `goose`, `sqlc`) is pinned via `go tool` — no global installs.
+
+- `make db-up` — start Postgres+pgvector (compose; published on **5433**)
+- `make migrate` — `goose up` (needs `DATABASE_URL`, see `.env.example`)
+- `make test` — full gate: db-up + migrate + `go test ./...`
+- `make lint` — `go tool golangci-lint run`
+- `go test ./internal/core/...` — core suite, runs **offline** (no DB/network)
+- `go run ./cmd/onit tasks` — list tasks (needs `DATABASE_URL` + `ONIT_USER_ID`)
+
+`DATABASE_URL=postgres://onit:onit@localhost:5433/onit?sslmode=disable`. Migrations
+in `db/migrations` (goose); queries in `db/queries` (sqlc → `internal/adapters/postgres/gen`).

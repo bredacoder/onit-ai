@@ -1,7 +1,7 @@
 # State
 
-**Last Updated:** 2026-05-29
-**Current Work:** Foundation (hexagonal wiring) — Tasks (tasks.md drafted, 14 tasks, awaiting approval)
+**Last Updated:** 2026-06-02
+**Current Work:** Foundation (hexagonal wiring) — ✅ **Execute COMPLETE.** All 14 tasks (T1–T15, no T11) implemented & committed on branch `feat/foundation` (16 atomic commits). `onit tasks` runs end-to-end over real Postgres; core tests pass offline; boundary test green; lint clean. Branch not yet merged to `main`. Next: review/merge, then the **Understand** slice.
 
 ---
 
@@ -37,6 +37,15 @@
 
 ---
 
+### AD-005: Typed IDs in leaf pkg `internal/core/ids` (2026-05-29)
+
+**Decision:** The five typed IDs (`UserID`, `TaskID`, `NegotiationID`, `ProviderID`, `MessageID`) live in a dependency-free leaf package `internal/core/ids` (package `ids`), **not** in the root `core` package as T3 originally drafted.
+**Reason:** Root `core` ports (ADR-008) return `understanding.Task`, so root imports `understanding`; if IDs also sat in root, `understanding` would import root for the ID types → mutual import cycle. A leaf `ids` package imported by both root ports and every aggregate breaks the cycle while keeping `Persistence` in root core (ADR-008 intact).
+**Trade-off:** One extra tiny package vs. an `ids.go` file in root.
+**Impact:** T3 creates `internal/core/ids/`; aggregates (T4–T6, T8) and root ports (T7) import `ids`; aggregates never import root `core`. tasks.md T3 + design.md updated.
+
+---
+
 ## Active Blockers
 
 _(none)_
@@ -45,13 +54,17 @@ _(none)_
 
 ## Lessons Learned
 
-_(none yet)_
+- **Cross-cutting port + centralized IDs = import cycle.** Putting `Persistence` in root `core` (ADR-008) while it returns `understanding.Task` means root imports the aggregate; IDs therefore can't also live in root (the aggregate would import root back). Fix: dependency-free leaf pkg `internal/core/ids` (AD-005). Watch for the same shape when adding future root ports that return aggregate types.
+- **`go tool` deps propagate their `go` directive.** Pinning `sqlc` (v1.31.1) bumped the module's `go` directive to **1.26.0**; `goose` had bumped it to 1.25.7. Tool deps raise the module's minimum Go even though they don't ship in the binary — acceptable here (toolchain auto-managed) but a real coupling to note.
+- **`constraints` is a SQL keyword.** The `Task.Constraints` domain field maps to column **`task_constraints`** to stay keyword-safe across psql/sqlc.
+- **Docker port 5432 was occupied** by another project; the db service publishes **5433**. `DATABASE_URL=postgres://onit:onit@localhost:5433/onit?sslmode=disable`.
+- **sqlc generated code can silently drift from its SQL source.** The committed `gen/tasks.sql.go` lost `ORDER BY ... DESC` and `LIMIT 100` because `sqlc generate` was not re-run after the `.sql` was finalized — a runtime bug (oldest-first, unbounded) that compiles clean and no linter catches. Caught by the PR review. Fix: regenerate + a `sqlc-drift` CI job (`go tool sqlc generate` then `git diff --cached --exit-code` on the gen dir) so generated/source divergence fails the build.
 
 ---
 
 ## Quick Tasks Completed
 
-_(none)_
+- [x] **Fix PR-review CRITICAL: sqlc drift** (2026-06-02) — regenerated `gen/tasks.sql.go` to restore `ORDER BY created_at DESC LIMIT 100`; added a `sqlc-drift` guard in `.github/workflows/ci.yml` to prevent recurrence.
 
 ---
 

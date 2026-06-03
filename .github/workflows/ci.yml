@@ -1,0 +1,43 @@
+name: CI
+
+# Lightweight gates that must hold on every PR and on main.
+# Today it guards one thing: the sqlc-generated Go must match its SQL source.
+# Extend with lint/test jobs as the project grows.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sqlc-drift:
+    name: sqlc generated code is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Pin to the module's go directive (1.26.0). setup-go honours the
+          # toolchain, so this stays in sync with go.mod automatically.
+          go-version-file: go.mod
+
+      # Regenerates internal/adapters/postgres/gen from db/queries + db/migrations.
+      # sqlc is a pinned `go tool` dependency (no global install), matching the Makefile.
+      - name: Regenerate sqlc code
+        run: go tool sqlc generate
+
+      # Stage the generated output and fail if anything changed: a clean checkout
+      # plus a fresh `sqlc generate` must be byte-identical to what was committed.
+      # Catches both edited and newly-created generated files (untracked).
+      - name: Fail if generated code drifted from SQL source
+        run: |
+          git add internal/adapters/postgres/gen
+          if ! git diff --cached --exit-code -- internal/adapters/postgres/gen; then
+            echo "::error::Generated sqlc code is out of date. Run 'go tool sqlc generate' and commit the result."
+            exit 1
+          fi

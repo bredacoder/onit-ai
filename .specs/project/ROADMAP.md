@@ -14,7 +14,7 @@
 
 ### Features
 
-**Foundation (hexagonal wiring)** - IN PROGRESS
+**Foundation (hexagonal wiring)** - ✅ DONE (branch `feat/foundation`, 2026-05-29)
 - Go project skeleton + local dev (docker-compose pgvector, Makefile, goose)
 - Data model: `User`, `Task`, `Negotiation` (FSM), `Provider`, `Message` — typed spine + open `jsonb` attributes; `user_id` on everything
 - All port interfaces with in-memory fakes (`PortLLM`, `PortPersistence`, `PortDiscovery` registry, `PortCalendar`, `PortMemory`)
