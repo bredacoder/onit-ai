@@ -44,15 +44,16 @@ subagent prompt. After all complete, run Step 3.
 
 ## Universal Rules (every subagent must follow)
 
-1. **Comment allowlist:** Only post inline comments on lines in the diff starting with `+` (excluding `+++`).
+1. **Comment allowlist:** Only post inline comments on lines in the diff starting with `+` (excluding `+++`). The quoted evidence must be the **current `+` line content as it exists at HEAD**, not the surrounding diff-hunk context and never a removed (`-`) line.
 2. **Skip duplicates:** If `{path, line}` within ±3 lines already has a comment, skip.
 3. **Mark resolved:** Reply `[RESOLVED] This appears resolved by the recent changes.` on existing comments where the issue is fixed.
 4. **False positive guard:** Only report findings with ≥80% confidence. Skip when uncertain.
-5. **Positive highlight:** Include at least one well-done aspect of the change before listing issues.
-6. **Tone:** Specific, actionable, collegial, **in English** (project convention). Explain WHY something is a problem.
-7. **Never** approve, request-changes, or modify files. Use `--comment` only.
-8. **Marker:** Start every inline comment body with `<!-- onit-review:{type} -->` (invisible in rendered view, used by the consolidation subagent).
-9. **Cite the source of the rule** (PRD §, ADR, spec requirement ID, or `golang-*` skill) so the author can verify — onit's principle is "review/understand every line, no vibe coding".
+5. **Verify against HEAD before posting.** Open the actual file at the current checkout and confirm the problem is *literally present on the cited line*; quote that present line as evidence. If it does not reproduce in the working tree, **drop it**. NEVER derive a finding from a removed (`-`) diff line, from an existing review comment, or from prose in docs/specs (e.g. `STATE.md` lessons-learned). A diff that *fixes* a bug still contains the old broken code on `-` lines — that is not a finding.
+6. **Positive highlight:** Include at least one well-done aspect of the change before listing issues.
+7. **Tone:** Specific, actionable, collegial, **in English** (project convention). Explain WHY something is a problem.
+8. **Never** approve, request-changes, or modify files. Use `--comment` only.
+9. **Marker:** Start every inline comment body with `<!-- onit-review:{type} -->` (invisible in rendered view, used by the consolidation subagent).
+10. **Cite the source of the rule** (PRD §, ADR, spec requirement ID, or `golang-*` skill) so the author can verify — onit's principle is "review/understand every line, no vibe coding".
 
 ---
 
@@ -256,8 +257,8 @@ After all 6 subagents complete, spawn one more subagent via the Task tool to con
 1. `gh api repos/{REPO}/pulls/{PR_NUMBER}/comments` — fetch all inline comments.
 2. Filter to those starting with `<!-- onit-review:` and parse the type from the marker.
 3. Fetch PR-level comments for the `<!-- onit-review:requirements -->` summary.
-4. Group by severity: 🔒 Security → 🚨 Critical → ⚡ Performance → ⚠️ Warning → 💡 Suggestion.
-5. Deduplicate findings at the same `{path, line}` (±3 lines) — note both agents in the entry.
+4. **Dedup by root cause (before grouping):** collapse findings that share a single root cause into **one** entry that lists every affected dimension and counts **once** — e.g. "sqlc drift — Critical; also surfaces under Security/Performance". One underlying problem must never be counted across multiple dimensions. This supersedes per-`{path, line}` dedup: same root cause across different files/lines still collapses to one entry.
+5. Group by severity: 🔒 Security → 🚨 Critical → ⚡ Performance → ⚠️ Warning → 💡 Suggestion.
 6. Collect one positive highlight per agent.
 7. **Gap detection:** `gh pr diff {PR_NUMBER} --name-only` for the full changed-file list. For any file
    with zero inline comments, add it to a `### 🔍 Files With No Inline Comments` section. Omit only
