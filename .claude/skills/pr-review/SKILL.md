@@ -54,6 +54,8 @@ subagent prompt. After all complete, run Step 3.
 8. **Never** approve, request-changes, or modify files. Use `--comment` only.
 9. **Marker:** Start every inline comment body with `<!-- onit-review:{type} -->` (invisible in rendered view, used by the consolidation subagent).
 10. **Cite the source of the rule** (PRD §, ADR, spec requirement ID, or `golang-*` skill) so the author can verify — onit's principle is "review/understand every line, no vibe coding".
+11. **Severity gate on posting:** Inline comments are reserved for 🚨 Critical and **confirmed** 🔒 Security / ⚡ Performance findings. ⚠️ Warning and 💡 Suggestion are aggregated into the summary comment only — **never posted inline**.
+12. **Linter-first:** Do not report anything a formatter/linter/compiler already enforces (`gofmt`/`golangci-lint`: trailing newline, import order, `t.Parallel()` suggestions, formatting/style). `make lint` runs separately. Focus on logic, invariants, security, requirements, and concurrency.
 
 ---
 
@@ -96,9 +98,6 @@ Work the diff **one file at a time**. For each changed file and each rule: **PAS
 (N/A only when structurally inapplicable). For every VIOLATION, post an inline comment on the exact
 `+` line that is the evidence, with the rule number and source.
 
-**Second pass:** re-read the full diff top to bottom; list every file you did not evaluate and run the
-matrix again. Only skip a file when you can state which rules are N/A and why.
-
 **Comment format:**
 ```
 <!-- onit-review:architecture -->
@@ -130,9 +129,6 @@ If no spec or PRD section maps to the PR, post:
 Compare the merged requirements against the PR diff. Post the summary with
 `gh pr comment {PR_NUMBER} --body '...'`.
 
-**Second pass:** re-read the requirements one item at a time and ask "did I evaluate this against the
-diff?" Mark each ✅ / ❌ / 🔲 explicitly.
-
 **Summary format:**
 ```markdown
 <!-- onit-review:requirements -->
@@ -160,9 +156,6 @@ missing per-`User` credential scoping, PII in logs, SQL built by string concaten
 parameterized `pgx`/`sqlc` queries, missing `user_id` filter exposing other tenants' rows, unvalidated
 external input (LLM tool args, Places/gcal responses), and OAuth token mishandling.
 
-**Second pass:** re-read the full diff; list every file you did not comment on and ask "does this file
-violate any security rule in scope?" Only skip when you can state why it is clean.
-
 **Comment format:**
 ```
 <!-- onit-review:security -->
@@ -184,10 +177,6 @@ table-driven unit test (🚨 Critical), adapters with no test against their port
 real network/DB instead of a fake (architecture smell), missing error-path coverage, and anti-patterns
 (no `t.Parallel()` where safe, hardcoded values, assertions that don't assert behavior).
 
-**Second pass:** re-read the diff; list every new/modified exported function, port implementation, and
-agent-loop branch you did not comment on. For each, ask "is there a unit test covering the happy path
-and at least one error/escalation case?" Only skip when you can state why coverage exists or is N/A.
-
 **Comment format:**
 ```
 <!-- onit-review:tests -->
@@ -208,10 +197,6 @@ the diff** — no speculation. Look for: N+1 query patterns (a query inside a lo
 ports/IO that could run via `errgroup`/`Promise`-style fan-out, goroutine leaks (no `context`
 cancellation, unbounded spawning, missing `wg.Wait()`), data races (shared map/slice written from
 multiple goroutines without a lock), and channel ownership/deadlock risks.
-
-**Second pass:** re-read the diff; list every loop, goroutine, channel, and repository call you did not
-comment on and ask "does this contain a clearly visible perf/concurrency issue?" Only skip when you can
-state why none apply.
 
 **Comment format:**
 ```
@@ -235,10 +220,6 @@ code, duplicate logic that already exists in the core (it should be reused, not 
 weakened error handling or escalation (e.g. an invariant "mismatch → escalate" path silently dropped),
 swallowed errors (`_ = err`), weakened test assertions, and dead code never called.
 
-**Second pass:** re-read the full diff; list every file you did not comment on and ask "does this file
-contain unrelated deletions, phantom imports, duplicate logic, or weakened invariants?" Only skip when
-you can state why none of those categories apply.
-
 **Comment format:**
 ```
 <!-- onit-review:regression -->
@@ -260,11 +241,7 @@ After all 6 subagents complete, spawn one more subagent via the Task tool to con
 4. **Dedup by root cause (before grouping):** collapse findings that share a single root cause into **one** entry that lists every affected dimension and counts **once** — e.g. "sqlc drift — Critical; also surfaces under Security/Performance". One underlying problem must never be counted across multiple dimensions. This supersedes per-`{path, line}` dedup: same root cause across different files/lines still collapses to one entry.
 5. Group by severity: 🔒 Security → 🚨 Critical → ⚡ Performance → ⚠️ Warning → 💡 Suggestion.
 6. Collect one positive highlight per agent.
-7. **Gap detection:** `gh pr diff {PR_NUMBER} --name-only` for the full changed-file list. For any file
-   with zero inline comments, add it to a `### 🔍 Files With No Inline Comments` section. Omit only
-   config/lock files (`*.yaml`, `*.yml`, `go.sum`, `*.lock`) or generated files (`*_sqlc.go`, generated
-   mocks) with no hand-written logic.
-8. Post: `gh pr review {PR_NUMBER} --comment --body '...'`
+7. Post: `gh pr review {PR_NUMBER} --comment --body '...'`
 
 **Summary format:**
 ```markdown
@@ -285,12 +262,6 @@ After all 6 subagents complete, spawn one more subagent via the Task tool to con
 ### ⚡ Performance ({N})
 ### ⚠️ Warnings ({N})
 ### 💡 Suggestions ({N})
-
----
-### 🔍 Files With No Inline Comments
-- `path/to/file.go` — no findings from any subagent (verify manually or re-run targeted review)
-
-_(Omit this section if all logic files received at least one comment.)_
 
 ---
 ### ✅ Highlights
